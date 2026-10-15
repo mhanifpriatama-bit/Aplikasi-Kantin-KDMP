@@ -24,14 +24,20 @@ export default defineConfig(() => {
           display: 'standalone', // Membuka aplikasi tanpa bar navigasi browser
           start_url: '/',
           scope: '/',
-          icons: [
-            {
-              src: 'https://google.dev', // Menggunakan banner sementara dari AI Studio sebagai ikon
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable'
-            }
-          ]
+             icons: [
+          {
+            src: '/icon-192.png', // Sesuaikan dengan nama file yang Anda upload
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          {
+            src: '/icon-512.png', // Sesuaikan dengan nama file yang Anda upload
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
         }
       })
     ],
