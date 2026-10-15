@@ -1,0 +1,17 @@
+{
+  "short_name": "Kantin KDMP",
+  "name": "Kantin KDMP Sinduadi - Sistem Kasir",
+  "icons": [
+    {
+      "src": "https://google.dev",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#1e293b",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait"
+}
