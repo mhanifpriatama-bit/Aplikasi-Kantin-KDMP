@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Inner Subtle Ring -->
+  <rect x="24" y="24" width="464" height="464" rx="92" fill="none" stroke="#60a5fa" stroke-width="4" stroke-opacity="0.3" />
+
+  <!-- Center Graphic in safe area -->
+  <g filter="url(#shadow)">
+    <!-- Store Awning / Roof Top -->
+    <path d="M128 190 L384 190 L360 140 L152 140 Z" fill="#ffffff" />
+    <path d="M128 190 Q160 216 192 190 Q224 216 256 190 Q288 216 320 190 Q352 216 384 190" fill="#ffffff" />
+    
+    <!-- Stripe Accents on Roof -->
+    <path d="M184 140 L168 190 L200 190 L216 140 Z" fill="url(#accentGrad)" />
+    <path d="M296 140 L280 190 L312 190 L328 140 Z" fill="url(#accentGrad)" />
+
+    <!-- Main Store / Counter Body -->
+    <rect x="144" y="210" width="224" height="150" rx="16" fill="#ffffff" />
+
+    <!-- QR Code / Scanner Symbol in the body -->
+    <g transform="translate(170, 230)">
+      <!-- QR corner 1 -->
+      <rect x="0" y="0" width="34" height="34" rx="6" fill="#1e40af" />
+      <rect x="7" y="7" width="20" height="20" rx="3" fill="#ffffff" />
+      <rect x="12" y="12" width="10" height="10" rx="2" fill="#1e40af" />
+
+      <!-- QR corner 2 -->
+      <rect x="68" y="0" width="34" height="34" rx="6" fill="#1e40af" />
+      <rect x="75" y="7" width="20" height="20" rx="3" fill="#ffffff" />
+      <rect x="80" y="12" width="10" height="10" rx="2" fill="#1e40af" />
+
+      <!-- QR corner 3 -->
+      <rect x="0" y="44" width="34" height="34" rx="6" fill="#1e40af" />
+      <rect x="7" y="51" width="20" height="20" rx="3" fill="#ffffff" />
+      <rect x="12" y="56" width="10" height="10" rx="2" fill="#1e40af" />
+
+      <!-- QR data bits -->
+      <rect x="52" y="14" width="8" height="8" rx="2" fill="#2563eb" />
+      <rect x="44" y="28" width="10" height="10" rx="2" fill="#f59e0b" />
+      <rect x="60" y="44" width="12" height="12" rx="3" fill="#1e40af" />
+      <rect x="44" y="60" width="10" height="18" rx="2" fill="#2563eb" />
+      <rect x="78" y="44" width="24" height="10" rx="2" fill="#2563eb" />
+      <rect x="78" y="62" width="24" height="16" rx="3" fill="#f59e0b" />
+    </g>
+
+    <!-- Cashier badge pill: KDMP SINDUADI -->
+    <rect x="136" y="376" width="240" height="42" rx="21" fill="url(#accentGrad)" />
+    <text x="256" y="403" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="900" fill="#1e293b" text-anchor="middle" letter-spacing="2">KDMP SINDUADI</text>
+  </g>
+</svg>

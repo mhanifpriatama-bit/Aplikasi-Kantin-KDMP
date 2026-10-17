@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Kantin KDMP Sinduadi",
+  "description": "Sistem kasir kantin kejujuran dan titipan produk KDMP Sinduadi dengan pemindai QR Code, opname stok produk, dan penutupan kasir otomatis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
