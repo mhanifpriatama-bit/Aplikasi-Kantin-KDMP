@@ -1,5 +1,5 @@
 // Service Worker untuk Kantin KDMP Sinduadi (Offline Cache PWA - Network First)
-const CACHE_NAME = 'kdmp-kasir-v5';
+const CACHE_NAME = 'kdmp-kasir-v13';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -14,12 +14,13 @@ const ASSETS_TO_CACHE = [
   './js/events.js',
   './js/app.js',
   './manifest.json',
+  './ikonmaskabel.svg',
   './icon.svg',
-  './icon-maskable.svg',
   './favicon.ico',
   './apple-touch-icon.png',
   './pwa-192x192.png',
   './pwa-512x512.png',
+  './pwa-maskable-512x512.png',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 ];
@@ -55,14 +56,26 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  const url = event.request.url;
+  // Jangan intersep request internal Vite development, dev server, atau ekstensi browser
+  if (
+    !url.startsWith('http://') && !url.startsWith('https://') ||
+    url.includes('/@vite/') ||
+    url.includes('/@fs/') ||
+    url.includes('/@id/') ||
+    url.includes('hot-update')
+  ) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+            cache.put(event.request, responseToCache).catch(() => {});
+          }).catch(() => {});
         }
         return networkResponse;
       })

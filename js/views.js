@@ -11,18 +11,8 @@
       <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
         <div class="max-w-4xl mx-auto px-4 py-2.5 flex justify-between items-center gap-2">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl shadow-xs bg-linear-to-br from-blue-700 to-blue-600 flex items-center justify-center p-1.5 text-white flex-shrink-0 border border-blue-200">
-              <svg viewBox="0 0 512 512" class="w-full h-full fill-current">
-                <path d="M128 190 L384 190 L360 140 L152 140 Z" fill="#ffffff" />
-                <rect x="144" y="210" width="224" height="150" rx="16" fill="#ffffff" />
-                <rect x="170" y="235" width="30" height="30" rx="4" fill="#1d4ed8" />
-                <rect x="238" y="235" width="30" height="30" rx="4" fill="#1d4ed8" />
-                <rect x="306" y="235" width="30" height="30" rx="4" fill="#1d4ed8" />
-                <rect x="170" y="295" width="30" height="30" rx="4" fill="#1d4ed8" />
-                <rect x="238" y="295" width="30" height="30" rx="4" fill="#1d4ed8" />
-                <rect x="306" y="295" width="30" height="30" rx="4" fill="#1d4ed8" />
-                <rect x="136" y="376" width="240" height="42" rx="21" fill="#fbbf24" />
-              </svg>
+            <div class="w-10 h-10 rounded-xl shadow-xs bg-white flex items-center justify-center p-0.5 flex-shrink-0 border border-slate-200 overflow-hidden">
+              <img src="./ikonmaskabel.svg" alt="Logo Kantin KDMP" class="w-full h-full object-contain" />
             </div>
             <div>
               <h1 class="font-bold text-base text-slate-900 tracking-tight leading-none">
@@ -35,12 +25,6 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <!-- TOMBOL UNDUH FILE HTML MANDIRI -->
-            <button id="btn-download-html" title="Unduh halaman ini sebagai file .html tunggal (Bisa dibuka offline di komputer mana pun tanpa internet)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 border border-slate-200 cursor-pointer">
-              <i data-lucide="download" class="w-3.5 h-3.5 text-blue-600"></i>
-              <span class="hidden sm:inline">Unduh .html</span>
-            </button>
-
             <!-- PWA INSTALL BUTTON -->
             ${
               !state.isInstalled && (state.deferredPrompt || state.isIOS)
@@ -73,7 +57,6 @@
                 ? `
               <div class="flex items-center gap-2 text-xs">
                 <div class="flex flex-col text-right">
-                  <span class="text-slate-400 text-[10px]">Petugas Aktif</span>
                   <strong class="text-slate-800">${state.petugas.nama}</strong>
                 </div>
               </div>
@@ -369,35 +352,38 @@
               ${headerInfoText}
             </div>
 
-            <div class="space-y-2 max-h-72 overflow-y-auto pr-1 pt-2">
-              ${state.cart
-                .map(
-                  (item) => `
-                <div class="receipt-item-row flex justify-between items-baseline py-2" style="font-size: 20px;">
-                  <span class="receipt-item-name font-semibold text-slate-900">${item.qty}x ${item.produk}</span>
-                  <span class="receipt-item-price font-bold text-slate-900 whitespace-nowrap ml-3">Rp ${(item.qty * item.hargaJual).toLocaleString('id-ID')}</span>
+            <!-- Area Daftar Pembelian dengan Overlay Watermark Transparan -->
+            <div class="relative py-2">
+              ${
+                state.isPaid
+                  ? `
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10" aria-hidden="true">
+                  <div class="stamp-lunas-overlay">
+                    LUNAS
+                  </div>
                 </div>
               `
-                )
-                .join('')}
+                  : ''
+              }
+
+              <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                ${state.cart
+                  .map(
+                    (item) => `
+                  <div class="receipt-item-row flex justify-between items-baseline py-2" style="font-size: 20px;">
+                    <span class="receipt-item-name font-semibold text-slate-900">${item.qty}x ${item.produk}</span>
+                    <span class="receipt-item-price font-bold text-slate-900 whitespace-nowrap ml-3">Rp ${(item.qty * item.hargaJual).toLocaleString('id-ID')}</span>
+                  </div>
+                `
+                  )
+                  .join('')}
+              </div>
             </div>
 
             <div class="receipt-total-box flex justify-between items-baseline pt-3 mt-3 border-t-3 border-slate-800">
               <span class="receipt-total-label font-extrabold text-slate-900" style="font-size: 24px; font-weight: 800;">Total:</span>
               <span class="receipt-total-val font-black text-blue-700 whitespace-nowrap" style="font-size: 32px; font-weight: 900;">Rp ${totalCart.toLocaleString('id-ID')}</span>
             </div>
-
-            ${
-              state.isPaid
-                ? `
-              <div class="watermark-lunas flex justify-center items-center pt-4 pb-1">
-                <div class="stamp-lunas-bottom" style="border: 4px solid #e11d48; color: #e11d48; font-size: 26px; font-weight: 900; letter-spacing: 0.15em; padding: 6px 28px; border-radius: 12px; transform: rotate(-3deg); background: rgba(255, 241, 242, 0.7); user-select: none;">
-                  LUNAS
-                </div>
-              </div>
-            `
-                : ''
-            }
           </div>
         </div>
       </div>
@@ -436,25 +422,25 @@
 
   function renderOpnameProdukModal(state) {
     return `
-      <div class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden p-6 space-y-4 animate-zoomIn">
-          <div class="flex items-center justify-between">
+      <div class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-0 sm:p-3">
+        <div class="bg-white shadow-2xl w-full max-w-full sm:max-w-5xl h-full sm:h-auto max-h-screen sm:max-h-[94vh] flex flex-col overflow-hidden p-2 sm:p-5 space-y-3 animate-zoomIn rounded-none sm:rounded-2xl">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-200 px-1">
             <div>
-              <h2 class="text-xl font-bold text-slate-900">Opname Stok Produk</h2>
-              <p class="text-xs text-slate-500">
+              <h2 class="text-lg sm:text-xl font-bold text-slate-900">Opname Stok Produk</h2>
+              <p class="text-[11px] sm:text-xs text-slate-500">
                 Verifikasi stok sisa fisik di etalase dan tentukan selisih jika ada.
               </p>
             </div>
           </div>
 
-          <div class="flex-1 overflow-y-auto border border-slate-200 rounded-xl">
-            <table class="w-full text-left text-sm">
-              <thead class="bg-slate-100 text-slate-600 sticky top-0 border-b border-slate-200">
+          <div class="flex-1 overflow-y-auto overflow-x-auto border border-slate-200 rounded-xl w-full">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-slate-100 text-slate-700 sticky top-0 border-b border-slate-200 font-bold">
                 <tr>
-                  <th class="p-3">Produk</th>
-                  <th class="p-3">Penitip</th>
-                  <th class="p-3 text-center">Stok Sistem</th>
-                  <th class="p-3 text-center">Status / Aksi</th>
+                  <th class="p-2 sm:p-3">Produk</th>
+                  <th class="p-2 sm:p-3">Penitip</th>
+                  <th class="p-2 sm:p-3 text-center whitespace-nowrap">Stok Sistem</th>
+                  <th class="p-2 sm:p-3 text-center whitespace-nowrap">opname</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -463,26 +449,31 @@
                     ? state.opnameList
                         .map(
                           (item, idx) => `
-                    <tr class="${item.done ? 'bg-emerald-50/60 text-slate-600' : 'hover:bg-slate-50'}">
-                      <td class="p-3 font-medium text-slate-900">${item.produk}</td>
-                      <td class="p-3 text-slate-600">${item.penitip}</td>
-                      <td class="p-3 text-center font-bold text-slate-800">${item.qty}</td>
-                      <td class="p-3 text-center">
+                    <tr class="${item.done ? 'bg-emerald-50/70 text-slate-600' : 'hover:bg-slate-50'}">
+                      <td class="p-2 sm:p-3 font-semibold text-slate-900">${item.produk}</td>
+                      <td class="p-2 sm:p-3 text-slate-600">${item.penitip}</td>
+                      <td class="p-2 sm:p-3 text-center font-bold text-slate-800">${item.qty}</td>
+                      <td class="p-2 sm:p-3 text-center whitespace-nowrap">
                         ${
                           !item.done
                             ? `
-                          <div class="inline-flex gap-2">
-                            <button data-opname-selisih="${idx}" class="btn-opname-selisih px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold rounded-lg text-xs transition cursor-pointer">
-                              Selisih
+                          <div class="inline-flex items-center justify-center gap-1.5">
+                            <button data-opname-selisih="${idx}" title="Input Selisih (+/-)" class="btn-opname-selisih px-2.5 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 font-black rounded-lg text-xs sm:text-sm transition active:scale-95 border border-amber-300 cursor-pointer">
+                              +/-
                             </button>
-                            <button data-opname-sesuai="${idx}" class="btn-opname-sesuai px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs transition cursor-pointer">
-                              Sesuai
+                            <button data-opname-sesuai="${idx}" title="Sesuai / Selesai (✓)" class="btn-opname-sesuai px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs sm:text-sm transition active:scale-95 flex items-center justify-center border border-emerald-700 shadow-xs cursor-pointer">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
                             </button>
                           </div>
                         `
                             : `
-                          <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md">
-                            Selesai ${item.selisih !== 0 ? `(Selisih: ${item.selisih})` : ''}
+                          <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-1 rounded-md border border-emerald-300">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-emerald-700">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            ${item.selisih !== 0 ? `<span>(${item.selisih > 0 ? `+${item.selisih}` : item.selisih})</span>` : ''}
                           </span>
                         `
                         }
@@ -503,9 +494,11 @@
             </table>
           </div>
 
-          <button id="btn-finish-opname" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-pointer">
-            <i data-lucide="download" class="w-4 h-4"></i>
-            Selesai Opname & Download Laporan Retur (PDF)
+          <button id="btn-finish-opname" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.99]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Selesai Opname & Download Laporan Retur (PDF)</span>
           </button>
         </div>
       </div>
@@ -514,7 +507,7 @@
 
   function renderDialogSelisihModal(state) {
     return `
-      <div class="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div id="modal-dialog-selisih" class="modal-dialog-selisih fixed inset-0 z-[99990] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-xs w-full p-6 text-center space-y-4 animate-zoomIn">
           <h3 class="font-bold text-slate-900">Input Selisih Stok</h3>
           <p class="text-xs text-slate-500">
@@ -642,7 +635,7 @@
 
   function renderSimModal(state) {
     return `
-      <div class="fixed inset-0 z-80 bg-slate-900/75 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div id="modal-simulasi-qr" class="modal-simulasi-qr fixed inset-0 z-[100000] bg-slate-900/75 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden animate-zoomIn">
           <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
             <div class="flex items-center gap-2">
@@ -683,9 +676,9 @@
               </span>
               <div class="flex flex-col items-center justify-center py-1">
                 <!-- Di atas: ^ -->
-                <button id="btn-sim-up" class="w-16 h-11 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-base rounded-xl transition flex flex-col items-center justify-center shadow-xs active:scale-95 cursor-pointer" title="^ (+5 / Batal)">
+                <button id="btn-sim-up" class="w-16 h-11 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-base rounded-xl transition flex flex-col items-center justify-center shadow-xs active:scale-95 cursor-pointer" title="^ (+5)">
                   <span>^</span>
-                  <span class="text-[9px] text-slate-400 font-normal leading-none">+5 / Batal</span>
+                  <span class="text-[9px] text-slate-400 font-normal leading-none">+5</span>
                 </button>
 
                 <!-- Di tengah: < | OK | > -->
@@ -707,9 +700,17 @@
                 </div>
 
                 <!-- Di bawah: ! -->
-                <button id="btn-sim-down" class="w-16 h-11 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-base rounded-xl transition flex flex-col items-center justify-center shadow-xs active:scale-95 cursor-pointer" title="! (-5)">
+                <button id="btn-sim-down" class="w-16 h-11 ${
+                  state.step === 'struk_digital'
+                    ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold'
+                } text-base rounded-xl transition flex flex-col items-center justify-center shadow-xs active:scale-95 cursor-pointer" title="${
+                  state.step === 'struk_digital' ? '! (Batal)' : '! (-5)'
+                }">
                   <span>!</span>
-                  <span class="text-[9px] text-slate-400 font-normal leading-none">-5</span>
+                  <span class="text-[9px] ${
+                    state.step === 'struk_digital' ? 'text-rose-600 font-bold' : 'text-slate-400 font-normal'
+                  } leading-none">${state.step === 'struk_digital' ? 'Batal' : '-5'}</span>
                 </button>
               </div>
             </div>
@@ -746,7 +747,7 @@
       state.step === 'tutup_warning';
 
     return `
-      <div class="fixed bottom-6 right-6 z-70 pointer-events-auto">
+      <div id="floating-qr-container" class="floating-qr-container fixed bottom-6 right-6 z-[99999] pointer-events-auto">
         <button id="btn-open-sim" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl hover:shadow-2xl flex items-center justify-center transition-all transform active:scale-95 focus:outline-hidden focus:ring-4 focus:ring-blue-300 relative group cursor-pointer" title="Buka Scanner QR / Simulator">
           <i data-lucide="qr-code" class="w-7 h-7"></i>
           ${

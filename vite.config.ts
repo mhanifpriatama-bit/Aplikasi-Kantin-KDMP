@@ -12,7 +12,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg', 'ikonmaskabel.svg'],
         manifest: {
           id: '/',
           name: 'Kantin KDMP Sinduadi',
@@ -20,7 +20,7 @@ export default defineConfig(() => {
           description:
             'Sistem kasir kantin kejujuran dan titipan produk KDMP Sinduadi dengan pemindai QR Code, opname stok produk, dan penutupan kasir otomatis.',
           theme_color: '#2563eb',
-          background_color: '#f8fafc',
+          background_color: '#ffffff',
           display: 'standalone',
           start_url: '/',
           scope: '/',
@@ -42,6 +42,12 @@ export default defineConfig(() => {
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
+            },
+            {
+              src: '/ikonmaskabel.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'any',
             },
           ],
         },

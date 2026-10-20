@@ -280,8 +280,8 @@ import './events.js';
         return;
       }
 
-      // Batal seluruh transaksi: '^'
-      if (data === '^') {
+      // Batal seluruh transaksi: '!' (dipindah dari '^')
+      if (data === '!') {
         for (const item of state.cart) {
           const k = getKeyFn ? getKeyFn(item.produk, item.penitip || '') : `${item.produk}__${item.penitip}`;
           const dbIdx = state.products.findIndex(
@@ -300,6 +300,29 @@ import './events.js';
         state.buyerInfo = 'Umum';
         state.step = 'main';
         renderApp();
+        return;
+      }
+
+      // Tambah +5 item terakhir: '^'
+      if (data === '^') {
+        if (state.cart.length > 0) {
+          const lastItem = state.cart[state.cart.length - 1];
+          const k = getKeyFn ? getKeyFn(lastItem.produk, lastItem.penitip || '') : `${lastItem.produk}__${lastItem.penitip}`;
+          const dbIndex = state.products.findIndex(
+            (p) =>
+              (p.key || (getKeyFn ? getKeyFn(p.produk, p.penitip) : `${p.produk}__${p.penitip}`)) === k ||
+              p.produk.toLowerCase() === lastItem.produk.toLowerCase()
+          );
+          if (dbIndex !== -1 && state.products[dbIndex].qty > 0) {
+            const addQty = Math.min(5, state.products[dbIndex].qty);
+            state.products[dbIndex].qty -= addQty;
+            if (state.db && window.upsertProductInDB) {
+              await window.upsertProductInDB(state.db, state.products[dbIndex]);
+            }
+            lastItem.qty += addQty;
+            renderApp();
+          }
+        }
         return;
       }
 
@@ -438,7 +461,7 @@ import './events.js';
     // Unduh PDF Laporan Retur & Pembayaran Penitip
     try {
       if (window.generateReturPdf) {
-        window.generateReturPdf(returResults, state.petugas ? state.petugas.nama : 'Petugas Kasir');
+        window.generateReturPdf(returResults, state.petugas ? state.petugas.nama : 'Petugas Kasir', new Date());
       }
     } catch (e) {
       console.error('Gagal generate PDF retur:', e);

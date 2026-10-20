@@ -9,15 +9,24 @@
   // Registrasi Service Worker untuk cache offline penuh
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').then(
-        (reg) => {
+      navigator.serviceWorker
+        .register('./sw.js')
+        .then((reg) => {
           console.log('[PWA] ServiceWorker terdaftar dengan scope:', reg.scope);
-          reg.update(); // Paksa periksa pembaruan sw.js seketika
-        },
-        (err) => {
+          reg.addEventListener('updatefound', () => {
+            const installingWorker = reg.installing;
+            if (installingWorker) {
+              installingWorker.addEventListener('statechange', () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[PWA] ServiceWorker versi baru siap.');
+                }
+              });
+            }
+          });
+        })
+        .catch((err) => {
           console.warn('[PWA] ServiceWorker gagal terdaftar:', err);
-        }
-      );
+        });
     });
   }
 

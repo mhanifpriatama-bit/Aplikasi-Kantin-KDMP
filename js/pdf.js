@@ -1,6 +1,11 @@
 /**
  * Kantin KDMP Sinduadi - Modul Laporan PDF
  * Menghasilkan Dokumen Berita Acara & Laporan Retur menggunakan jsPDF Standar
+ * Format Kertas: A5
+ * Tipografi:
+ * - Judul Utama (Heading 1): 22 pt (rentang 20-24 pt)
+ * - Sub-judul (Heading 2): 16 pt (rentang 16-18 pt)
+ * - Teks Utama (Body Text): 12 pt (rentang 12-14 pt)
  */
 
 (function () {
@@ -16,21 +21,135 @@
     throw new Error('Pustaka jsPDF tidak ditemukan. Pastikan CDN atau script jsPDF telah dimuat.');
   }
 
-  function generateReturPdf(returResults, petugasNama) {
-    const doc = getJsPdfInstance({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageWidth = 210;
-    const margin = 10;
+  function generateReturPdf(returResults, petugasNama, tutupTimestamp) {
+    // Ukuran Kertas A5 (Portrait: 148 x 210 mm)
+    const doc = getJsPdfInstance({ orientation: 'portrait', unit: 'mm', format: 'a5' });
+    const pageWidth = 148;
+    const margin = 8;
+    const tableWidth = pageWidth - margin * 2; // 132 mm
     let y = 16;
 
-    // Header Title
+    // Judul tabel : Retur dan Pembayaran Produk (Heading 1: 22 pt)
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
+    doc.setFontSize(22);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Retur dan Pembayaran Produk', margin, y);
+
+    y += 9;
+
+    // Diurutkan sesuai nama penitip (A-Z), jika sama urutkan sesuai nama produk (A-Z)
+    const sortedList = [...(returResults || [])].sort((a, b) => {
+      const pComp = (a.penitip || '').localeCompare(b.penitip || '', 'id-ID', { sensitivity: 'base' });
+      if (pComp !== 0) return pComp;
+      return (a.produk || '').localeCompare(b.produk || '', 'id-ID', { sensitivity: 'base' });
+    });
+
+    // 6 Kolom: produk, penitip, titipan, retur, laku, pembayaran
+    // Total tableWidth = 132 mm (36 + 26 + 16 + 16 + 16 + 22 = 132 mm)
+    const colX = [margin, margin + 36, margin + 62, margin + 78, margin + 94, margin + 110];
+    const colW = [36, 26, 16, 16, 16, 22];
+
+    function drawTableHeader(curY) {
+      doc.setFillColor(241, 245, 249);
+      doc.rect(margin, curY, tableWidth, 8, 'F');
+      doc.setDrawColor(203, 213, 225);
+      doc.rect(margin, curY, tableWidth, 8, 'S');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+
+      doc.text('Produk', colX[0] + 2, curY + 5.5);
+      doc.text('Penitip', colX[1] + 2, curY + 5.5);
+      doc.text('Titipan', colX[2] + colW[2] / 2, curY + 5.5, { align: 'center' });
+      doc.text('Retur', colX[3] + colW[3] / 2, curY + 5.5, { align: 'center' });
+      doc.text('Laku', colX[4] + colW[4] / 2, curY + 5.5, { align: 'center' });
+      doc.text('Pembayaran', colX[5] + colW[5] - 2, curY + 5.5, { align: 'right' });
+    }
+
+    drawTableHeader(y);
+    y += 8;
+
+    const rowHeight = 7.5;
+    sortedList.forEach((item, index) => {
+      // Cek batas halaman A5
+      if (y + rowHeight > 190) {
+        doc.addPage();
+        y = 16;
+        drawTableHeader(y);
+        y += 8;
+      }
+
+      if (index % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, y, tableWidth, rowHeight, 'F');
+      }
+      doc.setDrawColor(226, 232, 240);
+      doc.line(margin, y + rowHeight, margin + tableWidth, y + rowHeight);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+
+      const prodText = (item.produk || '').slice(0, 19);
+      const penText = (item.penitip || '').slice(0, 13);
+      const titipanVal = String(item.jumlahTitipan !== undefined ? item.jumlahTitipan : 0);
+      const returVal = String(item.sisaRetur !== undefined ? item.sisaRetur : 0);
+      const lakuVal = String(item.laku !== undefined ? item.laku : 0);
+      const bayarVal = `Rp ${(item.uangBayar || 0).toLocaleString('id-ID')}`;
+
+      doc.text(prodText, colX[0] + 2, y + 5);
+      doc.text(penText, colX[1] + 2, y + 5);
+      doc.text(titipanVal, colX[2] + colW[2] / 2, y + 5, { align: 'center' });
+      doc.text(returVal, colX[3] + colW[3] / 2, y + 5, { align: 'center' });
+      doc.text(lakuVal, colX[4] + colW[4] / 2, y + 5, { align: 'center' });
+      doc.text(bayarVal, colX[5] + colW[5] - 2, y + 5, { align: 'right' });
+
+      y += rowHeight;
+    });
+
+    // Di bawah tabel, ditulis nama petugas, jam dan tanggal ditutup.
+    // Itu saja, jangan tambahkan apapun.
+    y += 8;
+    if (y + 18 > 195) {
+      doc.addPage();
+      y = 16;
+    }
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12); // Body Text: 12 pt
+    doc.setTextColor(30, 41, 59);
+
+    const closeDate = tutupTimestamp ? new Date(tutupTimestamp) : new Date();
+    const jamTanggalStr = closeDate.toLocaleString('id-ID', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+
+    doc.text(`Petugas : ${petugasNama || 'Petugas Kasir'}`, margin, y);
+    y += 6;
+    doc.text(`Ditutup : ${jamTanggalStr}`, margin, y);
+
+    doc.save(`laporan_retur_opname_${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
+  function generateLabaPenutupanPdf(data) {
+    // Ukuran Kertas A5 (Portrait: 148 x 210 mm)
+    const doc = getJsPdfInstance({ orientation: 'portrait', unit: 'mm', format: 'a5' });
+    const pageWidth = 148;
+    const margin = 10;
+    const boxWidth = pageWidth - margin * 2; // 128 mm
+    let y = 14;
+
+    // Judul Utama (Heading 1: 22 pt)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
     doc.setTextColor(30, 41, 59);
     doc.text('KANTIN KDMP SINDUADI', margin, y);
 
-    y += 5.5;
+    y += 6.5;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
+    doc.setFontSize(12); // Body Text
     doc.setTextColor(100, 116, 139);
     doc.text('Sistem Kasir v.01 - Kalurahan Sinduadi', margin, y);
 
@@ -39,315 +158,105 @@
     doc.setLineWidth(0.4);
     doc.line(margin, y, pageWidth - margin, y);
 
-    y += 7;
+    // Sub-judul (Heading 2: 16 pt)
+    y += 7.5;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
+    doc.setFontSize(16);
     doc.setTextColor(15, 23, 42);
-    doc.text('LAPORAN OPNAME RETUR & PEMBAYARAN PENITIP', margin, y);
+    const subTitleLines = doc.splitTextToSize('BERITA ACARA PENUTUPAN KASIR & PEMBAGIAN LABA', boxWidth);
+    doc.text(subTitleLines, margin, y);
+    y += subTitleLines.length * 6;
 
-    y += 5.5;
+    // Metadata (Body Text: 12 pt)
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(12);
     doc.setTextColor(71, 85, 105);
     const nowStr = new Date().toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' });
-    doc.text(`Tanggal / Waktu : ${nowStr}`, margin, y);
-    y += 4.5;
-    doc.text(`Petugas Kasir   : ${petugasNama || 'Petugas Kasir'}`, margin, y);
+    doc.text(`Tanggal/Waktu : ${nowStr}`, margin, y);
+    y += 5.5;
+    doc.text(`Petugas Kasir : ${data.petugasNama || 'Petugas'}`, margin, y);
 
-    y += 6.5;
-    // 9 Kolom: No, Nama Produk, Penitip, Titipan, Laku, Sisa (Retur), Harga Titip, Uang Bayar, Tanda Tangan
-    const colX = [10, 17, 53, 79, 95, 108, 125, 146, 168, 190];
-    const tableWidth = 190;
-
-    // Header Bar
-    doc.setFillColor(241, 245, 249);
-    doc.rect(margin, y, tableWidth, 8, 'F');
-    doc.setDrawColor(203, 213, 225);
-    doc.rect(margin, y, tableWidth, 8, 'S');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.2);
-    doc.setTextColor(30, 41, 59);
-
-    doc.text('No', colX[0] + 3.5, y + 5.2, { align: 'center' });
-    doc.text('Nama Produk', colX[1] + 1.5, y + 5.2);
-    doc.text('Penitip', colX[2] + 1.5, y + 5.2);
-    doc.text('Titipan', colX[3] + 14.5, y + 5.2, { align: 'right' });
-    doc.text('Laku', colX[4] + 11.5, y + 5.2, { align: 'right' });
-    doc.text('Sisa (Retur)', colX[5] + 15.5, y + 5.2, { align: 'right' });
-    doc.text('Harga Titip', colX[6] + 19.5, y + 5.2, { align: 'right' });
-    doc.text('Uang Bayar', colX[7] + 20.5, y + 5.2, { align: 'right' });
-    doc.text('Tanda Tangan', colX[8] + 11, y + 5.2, { align: 'center' });
-
+    // Section 1: Rekonsiliasi Kas (Heading 2: 16 pt)
     y += 8;
-    doc.setFont('helvetica', 'normal');
-
-    let totalTitipanPcs = 0;
-    let totalLakuPcs = 0;
-    let totalReturPcs = 0;
-    let totalUangBayar = 0;
-
-    const rekapPenitip = {};
-
-    returResults.forEach((item, index) => {
-      if (y > 255) {
-        doc.addPage();
-        y = 18;
-        doc.setFillColor(241, 245, 249);
-        doc.rect(margin, y, tableWidth, 8, 'F');
-        doc.setDrawColor(203, 213, 225);
-        doc.rect(margin, y, tableWidth, 8, 'S');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.2);
-        doc.setTextColor(30, 41, 59);
-        doc.text('No', colX[0] + 3.5, y + 5.2, { align: 'center' });
-        doc.text('Nama Produk', colX[1] + 1.5, y + 5.2);
-        doc.text('Penitip', colX[2] + 1.5, y + 5.2);
-        doc.text('Titipan', colX[3] + 14.5, y + 5.2, { align: 'right' });
-        doc.text('Laku', colX[4] + 11.5, y + 5.2, { align: 'right' });
-        doc.text('Sisa (Retur)', colX[5] + 15.5, y + 5.2, { align: 'right' });
-        doc.text('Harga Titip', colX[6] + 19.5, y + 5.2, { align: 'right' });
-        doc.text('Uang Bayar', colX[7] + 20.5, y + 5.2, { align: 'right' });
-        doc.text('Tanda Tangan', colX[8] + 11, y + 5.2, { align: 'center' });
-        y += 8;
-        doc.setFont('helvetica', 'normal');
-      }
-
-      totalTitipanPcs += item.jumlahTitipan;
-      totalLakuPcs += item.laku;
-      totalReturPcs += item.sisaRetur;
-      totalUangBayar += item.uangBayar;
-
-      const penKey = item.penitip || 'Tanpa Nama';
-      if (!rekapPenitip[penKey]) {
-        rekapPenitip[penKey] = { laku: 0, retur: 0, bayar: 0 };
-      }
-      rekapPenitip[penKey].laku += item.laku;
-      rekapPenitip[penKey].retur += item.sisaRetur;
-      rekapPenitip[penKey].bayar += item.uangBayar;
-
-      const rowHeight = 7.5;
-      if (index % 2 === 1) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(margin, y, tableWidth, rowHeight, 'F');
-      }
-      doc.setDrawColor(226, 232, 240);
-      doc.line(margin, y + rowHeight, margin + tableWidth, y + rowHeight);
-
-      doc.setFontSize(7.2);
-      doc.setTextColor(30, 41, 59);
-
-      doc.text(String(index + 1), colX[0] + 3.5, y + 4.8, { align: 'center' });
-      doc.text(item.produk.slice(0, 26), colX[1] + 1.5, y + 4.8);
-      doc.text(item.penitip.slice(0, 18), colX[2] + 1.5, y + 4.8);
-      doc.text(String(item.jumlahTitipan), colX[3] + 14.5, y + 4.8, { align: 'right' });
-      doc.text(String(item.laku), colX[4] + 11.5, y + 4.8, { align: 'right' });
-      doc.text(String(item.sisaRetur), colX[5] + 15.5, y + 4.8, { align: 'right' });
-      doc.text(`Rp ${item.hargaTitip.toLocaleString('id-ID')}`, colX[6] + 19.5, y + 4.8, { align: 'right' });
-      doc.text(`Rp ${item.uangBayar.toLocaleString('id-ID')}`, colX[7] + 20.5, y + 4.8, { align: 'right' });
-
-      // Garis tanda tangan / paraf penerima barang retur & uang
-      doc.setDrawColor(203, 213, 225);
-      doc.line(colX[8] + 2, y + 5.5, colX[8] + 20, y + 5.5);
-
-      y += rowHeight;
-    });
-
-    // Summary box
-    y += 3.5;
-    if (y > 230) {
-      doc.addPage();
-      y = 18;
-    }
-
-    const summaryHeight = 12;
-    doc.setFillColor(238, 242, 255);
-    doc.rect(margin, y, tableWidth, summaryHeight, 'F');
-    doc.setDrawColor(199, 210, 254);
-    doc.rect(margin, y, tableWidth, summaryHeight, 'S');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.setTextColor(30, 58, 138);
-    doc.text(
-      `Total: ${totalTitipanPcs} titipan | ${totalLakuPcs} laku | ${totalReturPcs} retur`,
-      margin + 4,
-      y + 7.5
-    );
-    doc.text(
-      `Total Pembayaran Penitip: Rp ${totalUangBayar.toLocaleString('id-ID')}`,
-      margin + tableWidth - 4,
-      y + 7.5,
-      { align: 'right' }
-    );
-
-    // Rekapitulasi per Penitip
-    y += summaryHeight + 4;
-    const daftarPenitipKeys = Object.keys(rekapPenitip);
-    if (daftarPenitipKeys.length > 0) {
-      if (y + daftarPenitipKeys.length * 5 + 35 > 280) {
-        doc.addPage();
-        y = 18;
-      }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text('Rincian Pembayaran per Penitip:', margin, y);
-      y += 4.5;
-
-      daftarPenitipKeys.forEach((penName) => {
-        const pData = rekapPenitip[penName];
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(51, 65, 85);
-        doc.text(`• ${penName}`, margin + 3, y);
-        doc.text(
-          `Laku: ${pData.laku} pcs | Retur: ${pData.retur} pcs | Uang Diberikan: Rp ${pData.bayar.toLocaleString('id-ID')}`,
-          margin + 60,
-          y
-        );
-        y += 4.5;
-      });
-    }
-
-    // Signatures
-    y += 6;
-    if (y > 245) {
-      doc.addPage();
-      y = 20;
-    }
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(71, 85, 105);
-
-    doc.text('Petugas Kasir,', margin + 15, y);
-    doc.text('Pengurus KDMP / Koordinator Titipan,', pageWidth - margin - 65, y);
-
-    y += 18;
-    doc.setFont('helvetica', 'bold');
-    doc.text(`( ${petugasNama || 'Petugas Kasir'} )`, margin + 10, y);
-    doc.text('( ........................................ )', pageWidth - margin - 68, y);
-
-    doc.save(`laporan_retur_opname_${new Date().toISOString().slice(0, 10)}.pdf`);
-  }
-
-  function generateLabaPenutupanPdf(data) {
-    const doc = getJsPdfInstance({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageWidth = 210;
-    const margin = 15;
-    let y = 18;
-
-    // Header Title
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(30, 41, 59);
-    doc.text('KANTIN KDMP SINDUADI', margin, y);
-
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139);
-    doc.text('Sistem Kasir v.01 - Kalurahan Sinduadi', margin, y);
+    doc.text('1. Rekonsiliasi Kas Kasir', margin, y);
 
     y += 4;
-    doc.setDrawColor(203, 213, 225);
-    doc.setLineWidth(0.5);
-    doc.line(margin, y, pageWidth - margin, y);
-
-    y += 8;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(15, 23, 42);
-    doc.text('BERITA ACARA PENUTUPAN KASIR & PEMBAGIAN LABA', margin, y);
-
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(71, 85, 105);
-    const nowStr = new Date().toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' });
-    doc.text(`Tanggal / Waktu : ${nowStr}`, margin, y);
-    y += 5;
-    doc.text(`Petugas Kasir   : ${data.petugasNama || 'Petugas'}`, margin, y);
-
-    // Section 1: Rekonsiliasi Kas
-    y += 10;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    doc.text('1. REKONSILIASI KAS KASIR', margin, y);
-
-    y += 4;
-    const kasBoxWidth = pageWidth - margin * 2;
     doc.setFillColor(248, 250, 252);
-    doc.rect(margin, y, kasBoxWidth, 42, 'F');
+    doc.rect(margin, y, boxWidth, 40, 'F');
     doc.setDrawColor(226, 232, 240);
-    doc.rect(margin, y, kasBoxWidth, 42, 'S');
+    doc.rect(margin, y, boxWidth, 40, 'S');
 
     const kasItems = [
-      { label: 'Kas Awal Pagi (Uang Kembalian)', val: `Rp ${data.kasAwal.toLocaleString('id-ID')}` },
-      { label: `Total Penjualan Masuk (${data.totalTransaksi} Transaksi)`, val: `Rp ${data.totalPenjualan.toLocaleString('id-ID')}` },
-      { label: 'Kas Tercatat Sistem (Awal + Penjualan)', val: `Rp ${(data.kasAwal + data.totalPenjualan).toLocaleString('id-ID')}` },
-      { label: 'Kas Riil Fisik di Laci Kasir', val: `Rp ${data.kasRiil.toLocaleString('id-ID')}` },
+      { label: 'Kas Awal Pagi (Kembalian)', val: `Rp ${data.kasAwal.toLocaleString('id-ID')}` },
+      { label: `Total Penjualan (${data.totalTransaksi} Transaksi)`, val: `Rp ${data.totalPenjualan.toLocaleString('id-ID')}` },
+      { label: 'Kas Tercatat Sistem', val: `Rp ${(data.kasAwal + data.totalPenjualan).toLocaleString('id-ID')}` },
+      { label: 'Kas Riil Fisik di Laci', val: `Rp ${data.kasRiil.toLocaleString('id-ID')}` },
       {
         label: `Selisih Kas ${data.catatanSelisih ? `(${data.catatanSelisih})` : ''}`,
         val: `Rp ${(data.kasRiil - (data.kasAwal + data.totalPenjualan)).toLocaleString('id-ID')}`,
       },
     ];
 
-    let ky = y + 7;
+    let ky = y + 6.5;
     kasItems.forEach((row, i) => {
       doc.setFont('helvetica', i === 4 ? 'bold' : 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(12); // Body Text: 12 pt
       doc.setTextColor(i === 4 ? 185 : 51, i === 4 ? 28 : 65, i === 4 ? 28 : 85);
       doc.text(row.label, margin + 4, ky);
       doc.text(row.val, pageWidth - margin - 4, ky, { align: 'right' });
-      ky += 7;
+      ky += 7.2;
     });
 
-    // Section 2: Pembagian Laba
-    y += 50;
+    // Section 2: Pembagian Laba (Heading 2: 16 pt)
+    y += 45;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(16);
     doc.setTextColor(30, 41, 59);
-    doc.text('2. PEMBAGIAN HASIL LABA KANTIN', margin, y);
+    doc.text('2. Pembagian Hasil Laba Kantin', margin, y);
 
     y += 4;
     doc.setFillColor(240, 253, 244);
-    doc.rect(margin, y, kasBoxWidth, 38, 'F');
+    doc.rect(margin, y, boxWidth, 33, 'F');
     doc.setDrawColor(187, 247, 208);
-    doc.rect(margin, y, kasBoxWidth, 38, 'S');
+    doc.rect(margin, y, boxWidth, 33, 'S');
 
     const labaItems = [
       { label: 'Total Laba Bersih Kantin', val: `Rp ${data.labaTotal.toLocaleString('id-ID')}` },
-      { label: '20% PAD (Pendapatan Asli Desa Sinduadi)', val: `Rp ${data.pad20.toLocaleString('id-ID')}` },
-      { label: '30% KDMP Sinduadi (Pengelola)', val: `Rp ${data.kdmp30.toLocaleString('id-ID')}` },
-      { label: '50% Upah Operasional Petugas Kasir', val: `Rp ${data.upah50.toLocaleString('id-ID')}` },
+      { label: '20% PAD (Desa Sinduadi)', val: `Rp ${data.pad20.toLocaleString('id-ID')}` },
+      { label: '30% KDMP Sinduadi', val: `Rp ${data.kdmp30.toLocaleString('id-ID')}` },
+      { label: '50% Upah Petugas Kasir', val: `Rp ${data.upah50.toLocaleString('id-ID')}` },
     ];
 
-    let ly = y + 7;
+    let ly = y + 6.5;
     labaItems.forEach((row, i) => {
       doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(12); // Body Text: 12 pt
       doc.setTextColor(i === 0 ? 21 : 51, i === 0 ? 128 : 65, i === 0 ? 61 : 85);
       doc.text(row.label, margin + 4, ly);
       doc.text(row.val, pageWidth - margin - 4, ly, { align: 'right' });
-      ly += 7.5;
+      ly += 7.2;
     });
 
-    // Signatures
-    y += 48;
+    // Signatures (Body Text: 12 pt)
+    y += 38;
+    if (y + 25 > 200) {
+      doc.addPage();
+      y = 14;
+    }
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     doc.setTextColor(71, 85, 105);
 
-    doc.text('Petugas Kasir,', margin + 15, y);
-    doc.text('Pengurus KDMP Sinduadi,', pageWidth - margin - 55, y);
+    doc.text('Petugas Kasir,', margin + 6, y);
+    doc.text('Pengurus KDMP,', pageWidth - margin - 48, y);
 
-    y += 20;
+    y += 18;
     doc.setFont('helvetica', 'bold');
-    doc.text(`( ${data.petugasNama || 'Petugas'} )`, margin + 10, y);
-    doc.text('( ................................ )', pageWidth - margin - 58, y);
+    doc.text(`( ${data.petugasNama || 'Petugas'} )`, margin + 2, y);
+    doc.text('( ........................... )', pageWidth - margin - 50, y);
 
     doc.save(`laporan_penutupan_kasir_${new Date().toISOString().slice(0, 10)}.pdf`);
   }

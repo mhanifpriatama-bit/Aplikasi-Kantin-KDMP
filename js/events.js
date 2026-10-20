@@ -121,7 +121,7 @@
     if (btnStrukPlus) btnStrukPlus.onclick = () => window.handleQR && window.handleQR('>');
 
     const btnStrukCancel = document.getElementById('btn-struk-cancel');
-    if (btnStrukCancel) btnStrukCancel.onclick = () => window.handleQR && window.handleQR('^');
+    if (btnStrukCancel) btnStrukCancel.onclick = () => window.handleQR && window.handleQR('!');
 
     const btnStrukOk = document.getElementById('btn-struk-ok');
     if (btnStrukOk) btnStrukOk.onclick = () => window.handleQR && window.handleQR('OK');
