@@ -15,6 +15,24 @@ import './events.js';
 (function () {
   'use strict';
 
+  function playScanBeep() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1800, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } catch (e) {}
+  }
+
   // --- CORE QR CODE HANDLER ---
   async function handleQR(rawCode) {
     const state = window.state;
@@ -23,6 +41,8 @@ import './events.js';
     state.showSimModal = false;
     const data = (rawCode || '').trim();
     if (!data) return;
+
+    playScanBeep();
     const parts = data.split(',');
     let scannedNik = '';
     let scannedNama = '';

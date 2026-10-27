@@ -409,6 +409,29 @@
         }
       };
     }
+
+    // Setup receiver input scanner hardware USB OTG
+    const receiver = document.getElementById('barcode-scanner-receiver');
+    if (receiver) {
+      receiver.oninput = () => {
+        const val = receiver.value;
+        if (val.includes('\n') || val.includes('\r')) {
+          const cleaned = val.replace(/[\r\n]+/g, '').trim();
+          receiver.value = '';
+          if (cleaned) processScannedBarcode(cleaned);
+        }
+      };
+      receiver.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const val = receiver.value.trim();
+          receiver.value = '';
+          if (val) processScannedBarcode(val);
+          else processScannedBarcode('OK');
+        }
+      };
+    }
+    setTimeout(keepScannerFocused, 30);
   }
 
   async function editQtyManual(index) {
@@ -447,44 +470,137 @@
     }
   }
 
-  // Keyboard shortcut listener
-  window.addEventListener('keydown', (e) => {
-    const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-    const isInput = activeTag === 'input' || activeTag === 'textarea';
+  // --- INTEGRASI MESIN PEMINDAI QR / BARCODE HARDWARE (USB OTG / BLUETOOTH HID) ---
+  let scannerBuffer = '';
+  let lastKeyTime = 0;
+  let scannerTimeout = null;
+  let lastProcessedCode = '';
+  let lastProcessedTime = 0;
 
-    if (isInput) {
-      if (e.key === 'Enter' && window.state && window.state.step === 'kas_awal') {
-        e.preventDefault();
-        if (typeof window.handleQR === 'function') window.handleQR('OK');
+  function processScannedBarcode(raw) {
+    const code = (raw || '').trim();
+    if (!code) return;
+    const now = Date.now();
+    // Cegah eksekusi ganda jika event input dan keydown terpanggil bersamaan dalam rentang 180ms
+    if (code === lastProcessedCode && now - lastProcessedTime < 180) {
+      return;
+    }
+    lastProcessedCode = code;
+    lastProcessedTime = now;
+
+    scannerBuffer = '';
+    const receiver = document.getElementById('barcode-scanner-receiver');
+    if (receiver) receiver.value = '';
+
+    if (typeof window.handleQR === 'function') {
+      window.handleQR(code);
+    }
+  }
+
+  function keepScannerFocused() {
+    const active = document.activeElement;
+    const isUserTyping =
+      active &&
+      (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') &&
+      active.id !== 'barcode-scanner-receiver';
+
+    if (!isUserTyping) {
+      const receiver = document.getElementById('barcode-scanner-receiver');
+      if (receiver && document.activeElement !== receiver) {
+        try {
+          receiver.focus({ preventScroll: true });
+        } catch (err) {}
+      }
+    }
+  }
+
+  // Jaga fokus agar perangkat OTG USB selalu mengarah ke penerima data scanner
+  document.addEventListener('click', () => keepScannerFocused());
+  document.addEventListener('touchstart', () => keepScannerFocused(), { passive: true });
+
+  // Listener Keyboard & Mesin Pemindai QR Hardware (Keyboard Wedge Buffer)
+  window.addEventListener('keydown', (e) => {
+    const active = document.activeElement;
+    const isUserTyping =
+      active &&
+      (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') &&
+      active.id !== 'barcode-scanner-receiver';
+
+    // Jika sedang mengetik di input manual biasa
+    if (isUserTyping) {
+      if (e.key === 'Enter') {
+        if (window.state && window.state.step === 'kas_awal') {
+          e.preventDefault();
+          processScannedBarcode('OK');
+        }
       }
       return;
     }
 
-    if (typeof window.handleQR !== 'function') return;
+    // Tombol kontrol panah keyboard fisik (ketika scanner buffer kosong)
+    if (scannerBuffer.length === 0) {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        processScannedBarcode('<');
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        processScannedBarcode('>');
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        processScannedBarcode('^');
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        processScannedBarcode('!');
+        return;
+      }
+    }
 
-    switch (e.key) {
-      case 'ArrowLeft':
-        e.preventDefault();
-        window.handleQR('<');
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        window.handleQR('>');
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        window.handleQR('^');
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        window.handleQR('!');
-        break;
-      case 'Enter':
-        e.preventDefault();
-        window.handleQR('OK');
-        break;
-      default:
-        break;
+    // Akhir dari pemindaian scanner (karakter Enter)
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(scannerTimeout);
+      const receiver = document.getElementById('barcode-scanner-receiver');
+      const valFromReceiver = receiver ? receiver.value.trim() : '';
+      const scannedCode = valFromReceiver || scannerBuffer.trim();
+
+      scannerBuffer = '';
+      if (receiver) receiver.value = '';
+
+      if (scannedCode.length > 0) {
+        processScannedBarcode(scannedCode);
+      } else {
+        processScannedBarcode('OK');
+      }
+      return;
+    }
+
+    // Karakter isi yang dikirim oleh mesin pemindai barcode/QR
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      const now = Date.now();
+      // Jika jeda antar karakter lebih dari 600ms, anggap awal pemindaian baru
+      if (now - lastKeyTime > 600) {
+        scannerBuffer = '';
+      }
+      lastKeyTime = now;
+      scannerBuffer += e.key;
+
+      // Timeout cadangan untuk scanner yang tidak dikonfigurasi mengirim tombol Enter di akhir
+      clearTimeout(scannerTimeout);
+      scannerTimeout = setTimeout(() => {
+        const receiver = document.getElementById('barcode-scanner-receiver');
+        const code = (receiver && receiver.value.trim()) || scannerBuffer.trim();
+        if (code.length > 1 || ['<', '>', '^', '!', 'OK'].includes(code)) {
+          scannerBuffer = '';
+          if (receiver) receiver.value = '';
+          processScannedBarcode(code);
+        }
+      }, 150);
     }
   });
 

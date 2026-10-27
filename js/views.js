@@ -850,6 +850,22 @@
     html += renderFloatingButton(state);
     html += renderOfflineIndicator();
 
+    // Receiver Input untuk Mesin Pemindai QR / Barcode Hardware (USB OTG / Bluetooth HID)
+    html += `
+      <input
+        id="barcode-scanner-receiver"
+        type="text"
+        inputmode="none"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        tabindex="-1"
+        aria-hidden="true"
+        class="fixed -top-96 left-0 opacity-0 pointer-events-none w-0 h-0 border-0 p-0 m-0 z-[-1]"
+      />
+    `;
+
     return html;
   }
 
