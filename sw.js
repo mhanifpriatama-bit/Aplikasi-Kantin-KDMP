@@ -1,5 +1,5 @@
 // Service Worker untuk Kantin KDMP Sinduadi (Offline Cache PWA - Network First)
-const CACHE_NAME = 'kdmp-kasir-v17';
+const CACHE_NAME = 'kdmp-kasir-v18';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

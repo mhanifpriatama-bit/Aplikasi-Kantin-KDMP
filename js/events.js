@@ -410,6 +410,13 @@
       };
     }
 
+    const btnConnectSerial = document.getElementById('btn-connect-serial');
+    if (btnConnectSerial) {
+      btnConnectSerial.onclick = () => {
+        connectSerialScanner();
+      };
+    }
+
     // Setup receiver input scanner hardware USB OTG
     const receiver = document.getElementById('barcode-scanner-receiver');
     if (receiver) {
@@ -432,6 +439,98 @@
       };
     }
     setTimeout(keepScannerFocused, 30);
+  }
+
+  // --- KONEKSI VIRTUAL SERIAL (USB CDC ACM / VIRTUAL COM PORT) ---
+  let activeSerialPort = null;
+  let activeSerialReader = null;
+  let isReadingSerial = false;
+
+  async function connectSerialScanner() {
+    if (!('serial' in navigator)) {
+      alert(
+        'Peramban (browser) ini belum mengaktifkan fitur Web Serial API secara langsung.\n\n' +
+        'Solusi untuk HP Android:\n' +
+        '1. Rekomendasi tercepat & termudah: Tetap gunakan USB HID Mode, lalu scan barcode "Inter-character delay 20ms" di buku manual scanner. Data panjang dijamin 100% tidak akan terpotong lagi.\n' +
+        '2. Atau jika ingin Virtual Serial di HP: Buka URL chrome://flags di browser Chrome Android, cari "Enable Web Serial API on Android", ubah jadi Enabled, lalu buka kembali aplikasi ini.'
+      );
+      return;
+    }
+
+    try {
+      if (activeSerialPort) {
+        isReadingSerial = false;
+        if (activeSerialReader) {
+          try { await activeSerialReader.cancel(); } catch (e) {}
+        }
+        try { await activeSerialPort.close(); } catch (e) {}
+        activeSerialPort = null;
+        activeSerialReader = null;
+        updateSerialStatus(false);
+        return;
+      }
+
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      activeSerialPort = port;
+      updateSerialStatus(true);
+
+      const textDecoder = new TextDecoderStream();
+      port.readable.pipeTo(textDecoder.writable).catch(() => {});
+      const reader = textDecoder.readable.getReader();
+      activeSerialReader = reader;
+      isReadingSerial = true;
+
+      let buffer = '';
+      while (isReadingSerial) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+          buffer += value;
+          if (buffer.includes('\n') || buffer.includes('\r')) {
+            const lines = buffer.split(/[\r\n]+/);
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              const cleaned = line.trim();
+              if (cleaned) {
+                processScannedBarcode(cleaned);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (err.name !== 'NotFoundError') {
+        console.warn('[Serial] Error connecting serial:', err);
+      }
+      updateSerialStatus(false);
+    }
+  }
+
+  function updateSerialStatus(connected) {
+    const badge = document.getElementById('serial-status-badge');
+    const btn = document.getElementById('btn-connect-serial');
+    if (badge) {
+      if (connected) {
+        badge.textContent = 'Terhubung';
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700';
+      } else {
+        badge.textContent = 'Belum Terhubung';
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500';
+      }
+    }
+    if (btn) {
+      if (connected) {
+        btn.innerHTML = '<i data-lucide="unlink" class="w-4 h-4"></i><span>Putus Koneksi Scanner Serial</span>';
+        btn.className = 'w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer';
+      } else {
+        btn.innerHTML = '<i data-lucide="cable" class="w-4 h-4"></i><span>Hubungkan Mesin Scanner (Serial USB)</span>';
+        btn.className = 'w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer';
+      }
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    }
   }
 
   async function editQtyManual(index) {

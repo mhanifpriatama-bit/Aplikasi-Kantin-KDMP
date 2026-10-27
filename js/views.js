@@ -752,7 +752,23 @@
               </div>
             </div>
 
-            <!-- 4. Paling Bawah: Input Ketik Kode QR -->
+            <!-- 4. Mode Virtual Serial (USB CDC / Virtual COM) -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-100">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Mode Virtual Serial (USB COM)
+                </span>
+                <span id="serial-status-badge" class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500">
+                  Belum Terhubung
+                </span>
+              </div>
+              <button id="btn-connect-serial" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+                <i data-lucide="cable" class="w-4 h-4"></i>
+                <span>Hubungkan Mesin Scanner (Serial USB)</span>
+              </button>
+            </div>
+
+            <!-- 5. Paling Bawah: Input Ketik Kode QR -->
             <div class="space-y-1.5 pt-3 border-t border-slate-100">
               <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                 Ketik Kode QR:
