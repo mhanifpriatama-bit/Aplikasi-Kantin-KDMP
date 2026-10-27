@@ -80,11 +80,19 @@ import './events.js';
               },
             ];
             state.isPaid = false;
+            state.bayarNominal = null;
             state.step = 'struk_digital';
             renderApp();
           }
         }
       } else if (state.step === 'struk_digital') {
+        if (state.isPaid) {
+          // Ketika sudah muncul watermark lunas, input QR produk tidak menambah daftar struk.
+          // Baru setelah input QR OK, struk ditutup dan input QR produk memicu struk yang baru.
+          renderApp();
+          return;
+        }
+
         const existingIndex = state.products.findIndex(
           (p) => (p.key || (getKeyFn ? getKeyFn(p.produk, p.penitip) : `${p.produk}__${p.penitip}`)) === productKey
         );
@@ -217,12 +225,57 @@ import './events.js';
 
     // 5. STEP STRUK DIGITAL -> TRANSAKSI
     if (state.step === 'struk_digital') {
+      // Periksa apakah input adalah QR nominal uang (5000, 10000, 20000, 50000, 100000, atau angka lainnya)
+      const cleanNominalStr = String(data).trim().replace(/^rp\.?\s*/i, '').replace(/\./g, '');
+      const isNominalUang = /^\d+$/.test(cleanNominalStr) && cleanNominalStr.length < 10;
+      const nominalVal = isNominalUang ? Number(cleanNominalStr) : null;
+
+      if (nominalVal !== null && nominalVal > 0) {
+        state.bayarNominal = nominalVal;
+        state.isPaid = true; // Langsung status LUNAS
+
+        if (state.cart.length > 0) {
+          const totalCart = window.getTotalCartAmount ? window.getTotalCartAmount() : 0;
+          const receiptNum = window.getReceiptNumber ? window.getReceiptNumber() : '001';
+          const settledTx = {
+            no: receiptNum,
+            items: [...state.cart],
+            total: totalCart,
+            bayar: nominalVal,
+            kembali: Math.max(0, nominalVal - totalCart),
+            pembeli: state.buyerInfo,
+            petugas: state.petugas ? state.petugas.nama : 'Petugas',
+            timestamp: state.receiptDate,
+          };
+          const exists = state.transactionHistory.some((t) => t.no === settledTx.no);
+          if (!exists) {
+            state.transactionHistory.push(settledTx);
+          } else {
+            const idx = state.transactionHistory.findIndex((t) => t.no === settledTx.no);
+            state.transactionHistory[idx] = settledTx;
+          }
+          if (state.db && window.saveTransactionToDB) {
+            await window.saveTransactionToDB(state.db, settledTx);
+          }
+        }
+        renderApp();
+        return;
+      }
+
       if (state.isPaid) {
-        state.isPaid = false;
-        state.cart = [];
-        state.buyerInfo = 'Umum';
-        state.receiptCounter += 1;
-        state.step = 'main';
+        // Hanya input QR 'OK' yang menutup struk lunas dan kembali ke layar utama
+        if (data === 'OK') {
+          state.isPaid = false;
+          state.cart = [];
+          state.buyerInfo = 'Umum';
+          state.bayarNominal = null;
+          state.receiptCounter += 1;
+          state.step = 'main';
+          renderApp();
+          return;
+        }
+
+        // Karakter QR lain diabaikan saat struk sudah lunas
         renderApp();
         return;
       }
@@ -272,6 +325,7 @@ import './events.js';
           } else {
             state.cart.splice(lastIndex, 1);
             if (state.cart.length === 0) {
+              state.bayarNominal = null;
               state.step = 'main';
             }
           }
@@ -298,6 +352,7 @@ import './events.js';
         }
         state.cart = [];
         state.buyerInfo = 'Umum';
+        state.bayarNominal = null;
         state.step = 'main';
         renderApp();
         return;
@@ -336,6 +391,8 @@ import './events.js';
             no: receiptNum,
             items: [...state.cart],
             total: totalCart,
+            bayar: state.bayarNominal || totalCart,
+            kembali: state.bayarNominal ? Math.max(0, state.bayarNominal - totalCart) : 0,
             pembeli: state.buyerInfo,
             petugas: state.petugas ? state.petugas.nama : 'Petugas',
             timestamp: state.receiptDate,
@@ -343,6 +400,9 @@ import './events.js';
           const exists = state.transactionHistory.some((t) => t.no === settledTx.no);
           if (!exists) {
             state.transactionHistory.push(settledTx);
+          } else {
+            const idx = state.transactionHistory.findIndex((t) => t.no === settledTx.no);
+            state.transactionHistory[idx] = settledTx;
           }
           if (state.db && window.saveTransactionToDB) {
             await window.saveTransactionToDB(state.db, settledTx);

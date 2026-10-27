@@ -341,19 +341,19 @@
     return `
       <div class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-0.5 sm:p-4">
         <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl struk-modal-card w-full max-w-full sm:max-w-xl p-2 sm:p-5 relative overflow-hidden animate-zoomIn max-h-[96vh] overflow-y-auto">
-          <div class="receipt-container w-full bg-white rounded-xl border-2 border-slate-300 p-3 sm:p-5 font-mono text-slate-900" style="font-size: 20px; line-height: 1.5;">
+          <div class="receipt-container w-full bg-white rounded-xl border-2 border-slate-300 p-3 sm:p-5 font-mono text-slate-900" style="font-size: 20px; line-height: 1.35;">
             <div class="text-center pb-1">
-              <div class="receipt-title font-black text-center text-slate-900 tracking-wide" style="font-size: 24px; font-weight: 900; line-height: 1.2;">
+              <div class="receipt-title font-black text-center text-slate-900 tracking-wide" style="font-size: 22px; font-weight: 900; line-height: 1.2;">
                 KANTIN KDMP SINDUADI
               </div>
             </div>
 
-            <div class="receipt-header-info text-slate-800 font-bold py-2 border-b-2 border-slate-200" style="font-size: 19px; line-height: 1.4;">
+            <div class="receipt-header-info text-slate-800 font-bold py-1.5 border-b-2 border-slate-200" style="font-size: 18px; line-height: 1.3;">
               ${headerInfoText}
             </div>
 
             <!-- Area Daftar Pembelian dengan Overlay Watermark Transparan -->
-            <div class="relative py-2">
+            <div class="relative py-1">
               ${
                 state.isPaid
                   ? `
@@ -366,11 +366,11 @@
                   : ''
               }
 
-              <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <div class="space-y-0.5 max-h-80 overflow-y-auto pr-1">
                 ${state.cart
                   .map(
                     (item) => `
-                  <div class="receipt-item-row flex justify-between items-baseline py-2" style="font-size: 20px;">
+                  <div class="receipt-item-row flex justify-between items-baseline py-0.5 leading-snug" style="font-size: 20px;">
                     <span class="receipt-item-name font-semibold text-slate-900">${item.qty}x ${item.produk}</span>
                     <span class="receipt-item-price font-bold text-slate-900 whitespace-nowrap ml-3">Rp ${(item.qty * item.hargaJual).toLocaleString('id-ID')}</span>
                   </div>
@@ -380,10 +380,23 @@
               </div>
             </div>
 
-            <div class="receipt-total-box flex justify-between items-baseline pt-3 mt-3 border-t-3 border-slate-800">
-              <span class="receipt-total-label font-extrabold text-slate-900" style="font-size: 24px; font-weight: 800;">Total:</span>
-              <span class="receipt-total-val font-black text-blue-700 whitespace-nowrap" style="font-size: 32px; font-weight: 900;">Rp ${totalCart.toLocaleString('id-ID')}</span>
+            <div class="receipt-total-box flex justify-between items-baseline pt-2 mt-2 border-t-2 border-slate-800" style="font-size: 20px;">
+              <span class="receipt-total-label font-bold text-slate-900" style="font-size: 20px; font-weight: 800;">Total:</span>
+              <span class="receipt-total-val font-black text-blue-700 whitespace-nowrap" style="font-size: 20px; font-weight: 900;">Rp ${totalCart.toLocaleString('id-ID')}</span>
             </div>
+
+            ${
+              state.isPaid && state.bayarNominal
+                ? `
+              <div class="receipt-payment-info text-center font-bold text-slate-700 pt-1.5 mt-1.5 border-t border-dashed border-slate-300 whitespace-nowrap" style="font-size: 14px; line-height: 1.2;">
+                Dibayar ${Number(state.bayarNominal).toLocaleString('id-ID')} kembali ${Math.max(
+                    0,
+                    Number(state.bayarNominal) - totalCart
+                  ).toLocaleString('id-ID')}
+              </div>
+            `
+                : ''
+            }
           </div>
         </div>
       </div>
@@ -715,7 +728,31 @@
               </div>
             </div>
 
-            <!-- 3. Paling Bawah: Input Ketik Kode QR -->
+            <!-- 3. Simulasi Input QR Nominal Pembayaran Tunai -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-100">
+              <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block text-center">
+                Nominal QR Pembayaran
+              </span>
+              <div class="grid grid-cols-5 gap-1.5">
+                <button id="btn-sim-cash-5000" onclick="if(window.handleQR)window.handleQR('5000')" class="btn-sim-cash py-2 px-1 text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition text-center truncate active:scale-95 cursor-pointer" data-val="5000" title="QR: 5000">
+                  5.000
+                </button>
+                <button id="btn-sim-cash-10000" onclick="if(window.handleQR)window.handleQR('10000')" class="btn-sim-cash py-2 px-1 text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition text-center truncate active:scale-95 cursor-pointer" data-val="10000" title="QR: 10000">
+                  10.000
+                </button>
+                <button id="btn-sim-cash-20000" onclick="if(window.handleQR)window.handleQR('20000')" class="btn-sim-cash py-2 px-1 text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition text-center truncate active:scale-95 cursor-pointer" data-val="20000" title="QR: 20000">
+                  20.000
+                </button>
+                <button id="btn-sim-cash-50000" onclick="if(window.handleQR)window.handleQR('50000')" class="btn-sim-cash py-2 px-1 text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition text-center truncate active:scale-95 cursor-pointer" data-val="50000" title="QR: 50000">
+                  50.000
+                </button>
+                <button id="btn-sim-cash-100000" onclick="if(window.handleQR)window.handleQR('100000')" class="btn-sim-cash py-2 px-1 text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl transition text-center truncate active:scale-95 cursor-pointer" data-val="100000" title="QR: 100000">
+                  100.000
+                </button>
+              </div>
+            </div>
+
+            <!-- 4. Paling Bawah: Input Ketik Kode QR -->
             <div class="space-y-1.5 pt-3 border-t border-slate-100">
               <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                 Ketik Kode QR:

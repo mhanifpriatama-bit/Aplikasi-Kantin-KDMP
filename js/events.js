@@ -364,6 +364,27 @@
       btnSimDown.onclick = () => window.handleQR && window.handleQR('!');
     }
 
+    // Nominal Bayar QR (5000, 10000, 20000, 50000, 100000)
+    ['5000', '10000', '20000', '50000', '100000'].forEach((amt) => {
+      const b = document.getElementById(`btn-sim-cash-${amt}`);
+      if (b) {
+        b.onclick = () => {
+          if (typeof window.handleQR === 'function') {
+            window.handleQR(amt);
+          }
+        };
+      }
+    });
+
+    document.querySelectorAll('.btn-sim-cash').forEach((btn) => {
+      btn.onclick = () => {
+        const val = btn.getAttribute('data-val');
+        if (val && typeof window.handleQR === 'function') {
+          window.handleQR(val);
+        }
+      };
+    });
+
     const inputCustomQr = document.getElementById('input-custom-qr');
     if (inputCustomQr) {
       inputCustomQr.oninput = (e) => {

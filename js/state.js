@@ -19,6 +19,7 @@
     cart: [],
     buyerInfo: 'Umum',
     isPaid: false,
+    bayarNominal: null,
     receiptDate: '',
     transactionHistory: [],
     opnameList: [],
