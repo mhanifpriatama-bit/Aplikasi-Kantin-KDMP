@@ -1,0 +1,53 @@
+diff --git a/js/events.js b/js/events.js
+index 8cf11e2..4bb6b0d 100644
+--- a/js/events.js
++++ b/js/events.js
+@@ -431,10 +431,13 @@
+       receiver.onkeydown = (e) => {
+         if (e.key === 'Enter') {
+           e.preventDefault();
+-          const val = receiver.value.trim();
++          // Hentikan bubbling: kalau tidak, listener window di bawah ikut memproses
++          // Enter yang sama dan mengirim 'OK' ekstra tepat setelah kode hasil scan.
++          e.stopPropagation();
++          const val = receiver.value.trim() || scannerBuffer.trim();
+           receiver.value = '';
+           if (val) processScannedBarcode(val);
+-          else processScannedBarcode('OK');
++          else if (!isRecentScanSuffix()) processScannedBarcode('OK');
+         }
+       };
+     }
+@@ -576,6 +579,12 @@
+   let lastProcessedCode = '';
+   let lastProcessedTime = 0;
+ 
++  // Enter tunggal yang datang tepat setelah sebuah scan adalah akhiran Enter dari
++  // mesin pemindai, bukan perintah OK dari petugas.
++  function isRecentScanSuffix() {
++    return lastProcessedCode !== 'OK' && Date.now() - lastProcessedTime < 400;
++  }
++
+   function processScannedBarcode(raw) {
+     const code = (raw || '').trim();
+     if (!code) return;
+@@ -673,7 +682,7 @@
+ 
+       if (scannedCode.length > 0) {
+         processScannedBarcode(scannedCode);
+-      } else {
++      } else if (!isRecentScanSuffix()) {
+         processScannedBarcode('OK');
+       }
+       return;
+diff --git a/sw.js b/sw.js
+index 8d9f853..7e5a3fc 100644
+--- a/sw.js
++++ b/sw.js
+@@ -1,5 +1,5 @@
+ // Service Worker untuk Kantin KDMP Sinduadi (Offline Cache PWA - Network First)
+-const CACHE_NAME = 'kdmp-kasir-v18';
++const CACHE_NAME = 'kdmp-kasir-v19';
+ const ASSETS_TO_CACHE = [
+   './',
+   './index.html',
