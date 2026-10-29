@@ -768,6 +768,24 @@
               </button>
             </div>
 
+            <!-- 4b. Mode Keyboard Serial (IME kustom) -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-100">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Mode Keyboard Serial (IME)
+                </span>
+                <span id="ime-status-badge" class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500">
+                  Mati
+                </span>
+              </div>
+              <button id="btn-ime-mode" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+                Aktifkan Mode Keyboard Serial
+              </button>
+              <p class="text-[10px] text-slate-400 leading-snug">
+                Aktifkan hanya jika scanner terhubung lewat aplikasi keyboard (IME) kustom. Pilih keyboard itu sebagai keyboard aktif di pengaturan ponsel.
+              </p>
+            </div>
+
             <!-- 5. Paling Bawah: Input Ketik Kode QR -->
             <div class="space-y-1.5 pt-3 border-t border-slate-100">
               <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
@@ -866,21 +884,8 @@
     html += renderFloatingButton(state);
     html += renderOfflineIndicator();
 
-    // Receiver Input untuk Mesin Pemindai QR / Barcode Hardware (USB OTG / Bluetooth HID)
-    html += `
-      <input
-        id="barcode-scanner-receiver"
-        type="text"
-        inputmode="none"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="off"
-        spellcheck="false"
-        tabindex="-1"
-        aria-hidden="true"
-        class="fixed -top-96 left-0 opacity-0 pointer-events-none w-0 h-0 border-0 p-0 m-0 z-[-1]"
-      />
-    `;
+    // Kolom penerima scanner dibuat sekali di events.js (di luar #app) agar fokus dan
+    // koneksi keyboard (IME) tidak hilang setiap kali tampilan dirender ulang.
 
     return html;
   }

@@ -418,7 +418,13 @@
     }
 
     // Setup receiver input scanner hardware USB OTG
-    const receiver = document.getElementById('barcode-scanner-receiver');
+    const btnImeMode = document.getElementById('btn-ime-mode');
+    if (btnImeMode) {
+      btnImeMode.onclick = () => setImeMode(!imeMode);
+    }
+    updateImeButton();
+
+    const receiver = ensureReceiver();
     if (receiver) {
       receiver.oninput = () => {
         const val = receiver.value;
@@ -426,6 +432,19 @@
           const cleaned = val.replace(/[\r\n]+/g, '').trim();
           receiver.value = '';
           if (cleaned) processScannedBarcode(cleaned);
+          return;
+        }
+        // Teks yang masuk tanpa tombol fisik (keyboard kustom/IME): tunggu 300 ms tanpa
+        // tambahan data, lalu proses. Jika Enter datang lebih dulu, nilainya sudah kosong.
+        if (val.trim() && Date.now() - lastRealKeyAt > 120) {
+          clearTimeout(imeTimer);
+          imeTimer = setTimeout(() => {
+            const v = receiver.value.trim();
+            if (v) {
+              receiver.value = '';
+              processScannedBarcode(v);
+            }
+          }, 300);
         }
       };
       receiver.onkeydown = (e) => {
@@ -593,6 +612,57 @@
     }
   }
 
+  // --- MODE KEYBOARD SERIAL (IME KUSTOM) ---
+  // Keyboard kustom mengetik lewat koneksi input Android (bukan lewat tombol fisik).
+  // Dengan inputmode="none" Chrome tidak menyambungkan keyboard itu ke kolom penerima,
+  // jadi mode ini mengubahnya ke "text". Pilihan disimpan di perangkat.
+  let imeMode = false;
+  try { imeMode = localStorage.getItem('kdmp_ime_mode') === '1'; } catch (err) {}
+  let lastRealKeyAt = 0;
+  let imeTimer = null;
+
+  function ensureReceiver() {
+    let r = document.getElementById('barcode-scanner-receiver');
+    if (r || !document.body) return r;
+    r = document.createElement('input');
+    r.id = 'barcode-scanner-receiver';
+    r.type = 'text';
+    r.setAttribute('inputmode', imeMode ? 'text' : 'none');
+    r.setAttribute('autocomplete', 'off');
+    r.setAttribute('autocorrect', 'off');
+    r.setAttribute('autocapitalize', 'off');
+    r.setAttribute('spellcheck', 'false');
+    r.setAttribute('tabindex', '-1');
+    r.setAttribute('aria-hidden', 'true');
+    r.style.cssText =
+      'position:fixed;top:-400px;left:0;width:1px;height:1px;opacity:0;border:0;padding:0;margin:0;pointer-events:none;';
+    document.body.appendChild(r);
+    return r;
+  }
+
+  function updateImeButton() {
+    const badge = document.getElementById('ime-status-badge');
+    const btn = document.getElementById('btn-ime-mode');
+    if (badge) {
+      badge.textContent = imeMode ? 'Aktif' : 'Mati';
+      badge.className = imeMode
+        ? 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700'
+        : 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-500';
+    }
+    if (btn) {
+      btn.textContent = imeMode ? 'Matikan Mode Keyboard Serial' : 'Aktifkan Mode Keyboard Serial';
+    }
+  }
+
+  function setImeMode(on) {
+    imeMode = !!on;
+    try { localStorage.setItem('kdmp_ime_mode', imeMode ? '1' : '0'); } catch (err) {}
+    const r = ensureReceiver();
+    if (r) r.setAttribute('inputmode', imeMode ? 'text' : 'none');
+    updateImeButton();
+    if (r && imeMode) { try { r.focus({ preventScroll: true }); } catch (err) {} }
+  }
+
   // Enter tunggal yang datang tepat setelah sebuah scan adalah akhiran Enter dari
   // mesin pemindai, bukan perintah OK dari petugas.
   function isRecentScanSuffix() {
@@ -643,6 +713,7 @@
 
   // Listener Keyboard & Mesin Pemindai QR Hardware (Keyboard Wedge Buffer)
   window.addEventListener('keydown', (e) => {
+    if (e.key && e.key !== 'Unidentified' && e.keyCode !== 229) lastRealKeyAt = Date.now();
     const active = document.activeElement;
     const isUserTyping =
       active &&
@@ -731,6 +802,8 @@
       }
     }
   });
+
+  try { ensureReceiver(); } catch (err) {}
 
   // --- MODE DEBUG INPUT (aktif hanya jika alamat memakai ?debug=1) ---
   // Menampilkan semua kejadian keyboard/IME yang diterima browser, agar terlihat
