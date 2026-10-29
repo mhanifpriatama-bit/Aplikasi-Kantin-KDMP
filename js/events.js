@@ -593,35 +593,6 @@
     }
   }
 
-  // --- DIAGNOSTIK SCAN (SEMENTARA) ---
-  // Menampilkan di layar kode apa yang diterima aplikasi dari mesin pemindai.
-  let dbgKeys = [];
-  let dbgTimer = null;
-
-  function describeFocus() {
-    const a = document.activeElement;
-    return a ? a.tagName + (a.id ? '#' + a.id : '') : '-';
-  }
-
-  function showScanDebug(msg) {
-    try {
-      let box = document.getElementById('kdmp-scan-debug');
-      if (!box) {
-        box = document.createElement('div');
-        box.id = 'kdmp-scan-debug';
-        box.style.cssText =
-          'position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;padding:8px 10px;' +
-          'border-radius:10px;background:rgba(15,23,42,.92);color:#fff;font:12px/1.4 monospace;' +
-          'word-break:break-all;white-space:pre-wrap;pointer-events:none;';
-        document.body.appendChild(box);
-      }
-      box.textContent = msg;
-      box.style.display = 'block';
-      clearTimeout(box._t);
-      box._t = setTimeout(() => { box.style.display = 'none'; }, 8000);
-    } catch (err) {}
-  }
-
   // Enter tunggal yang datang tepat setelah sebuah scan adalah akhiran Enter dari
   // mesin pemindai, bukan perintah OK dari petugas.
   function isRecentScanSuffix() {
@@ -640,24 +611,11 @@
     lastProcessedTime = now;
 
     scannerBuffer = '';
-    clearTimeout(dbgTimer);
-    dbgKeys = [];
     const receiver = document.getElementById('barcode-scanner-receiver');
     if (receiver) receiver.value = '';
 
-    const stepBefore = window.state ? window.state.step : '?';
-    const head = 'Scan diterima (' + code.length + ' karakter):\n' + JSON.stringify(code) + '\n';
-    showScanDebug(head + 'Layar: ' + stepBefore);
-
     if (typeof window.handleQR === 'function') {
-      Promise.resolve(window.handleQR(code))
-        .then(() => {
-          const stepAfter = window.state ? window.state.step : '?';
-          showScanDebug(head + 'Layar: ' + stepBefore + ' -> ' + stepAfter + (stepBefore === stepAfter ? ' (layar tetap)' : ''));
-        })
-        .catch((err) => {
-          showScanDebug(head + 'ERROR saat memproses scan: ' + (err && err.message ? err.message : err));
-        });
+      window.handleQR(code);
     }
   }
 
@@ -689,19 +647,6 @@
       active &&
       (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') &&
       active.id !== 'barcode-scanner-receiver';
-
-    // Diagnostik: catat tombol yang masuk; bila 1,5 detik berlalu tanpa ada scan yang diproses, tampilkan.
-    dbgKeys.push(e.key);
-    if (dbgKeys.length > 80) dbgKeys.shift();
-    clearTimeout(dbgTimer);
-    dbgTimer = setTimeout(() => {
-      if (dbgKeys.length) {
-        showScanDebug(
-          'Ketikan terbaca tapi belum diproses (' + dbgKeys.length + ' tombol):\n' +
-          JSON.stringify(dbgKeys.join(' ')) + '\nFokus: ' + describeFocus()
-        );
-      }
-    }, 1500);
 
     // Jika sedang mengetik di input manual biasa
     if (isUserTyping) {
