@@ -614,6 +614,7 @@
     const receiver = document.getElementById('barcode-scanner-receiver');
     if (receiver) receiver.value = '';
 
+    if (window.__kdmpDbgLog) window.__kdmpDbgLog('>>> PROSES scan: ' + JSON.stringify(code));
     if (typeof window.handleQR === 'function') {
       window.handleQR(code);
     }
@@ -730,6 +731,97 @@
       }
     }
   });
+
+  // --- MODE DEBUG INPUT (aktif hanya jika alamat memakai ?debug=1) ---
+  // Menampilkan semua kejadian keyboard/IME yang diterima browser, agar terlihat
+  // bagaimana "serial keyboard" atau scanner mengirim data ke halaman.
+  (function setupInputDebug() {
+    try {
+      if (!/[?&]debug=1(&|$)/.test(location.search)) return;
+      const lines = [];
+      let box = null;
+      let pre = null;
+
+      function desc(el) {
+        if (!el) return '-';
+        return (el.tagName || '?') + (el.id ? '#' + el.id : '');
+      }
+
+      function ensureBox() {
+        if (box && document.body && document.body.contains(box)) return;
+        if (!document.body) return;
+        box = document.createElement('div');
+        box.style.cssText =
+          'position:fixed;left:4px;right:4px;top:4px;z-index:99999;max-height:46vh;display:flex;' +
+          'flex-direction:column;border-radius:10px;background:rgba(15,23,42,.94);color:#d1fae5;' +
+          'font:11px/1.35 monospace;';
+        const bar = document.createElement('div');
+        bar.style.cssText = 'display:flex;gap:6px;padding:6px;flex-wrap:wrap;';
+        function mkBtn(label, fn) {
+          const b = document.createElement('button');
+          b.textContent = label;
+          b.style.cssText = 'padding:4px 8px;border-radius:6px;background:#334155;color:#fff;font:11px monospace;border:0;';
+          b.addEventListener('mousedown', (ev) => ev.preventDefault());
+          b.addEventListener('touchstart', (ev) => ev.preventDefault(), { passive: false });
+          b.addEventListener('click', fn);
+          bar.appendChild(b);
+          return b;
+        }
+        const modeBtn = mkBtn('inputmode: none', () => {
+          const r = document.getElementById('barcode-scanner-receiver');
+          if (!r) return;
+          const now = r.getAttribute('inputmode') === 'none' ? 'text' : 'none';
+          r.setAttribute('inputmode', now);
+          modeBtn.textContent = 'inputmode: ' + now;
+          log('receiver inputmode diubah menjadi ' + now + ' (ketuk layar lalu scan lagi)');
+        });
+        mkBtn('fokus receiver', () => {
+          const r = document.getElementById('barcode-scanner-receiver');
+          if (r) { try { r.focus(); } catch (err) {} }
+          log('fokus sekarang: ' + desc(document.activeElement));
+        });
+        mkBtn('bersihkan', () => { lines.length = 0; render(); });
+        pre = document.createElement('div');
+        pre.style.cssText = 'padding:0 8px 8px;overflow:auto;white-space:pre-wrap;word-break:break-all;';
+        box.appendChild(bar);
+        box.appendChild(pre);
+        document.body.appendChild(box);
+      }
+
+      function render() {
+        ensureBox();
+        if (!pre) return;
+        pre.textContent = lines.join('\n');
+        pre.scrollTop = pre.scrollHeight;
+      }
+
+      function log(msg) {
+        const t = new Date();
+        const stamp = String(t.getSeconds()).padStart(2, '0') + '.' + String(t.getMilliseconds()).padStart(3, '0');
+        lines.push(stamp + ' ' + msg);
+        if (lines.length > 60) lines.shift();
+        render();
+      }
+      window.__kdmpDbgLog = log;
+
+      const fmt = {
+        keydown: (e) => 'keydown key=' + JSON.stringify(e.key) + ' code=' + e.code + ' kc=' + e.keyCode + ' @' + desc(e.target),
+        beforeinput: (e) => 'beforeinput ' + e.inputType + ' data=' + JSON.stringify(e.data) + ' @' + desc(e.target),
+        input: (e) => 'input ' + e.inputType + ' data=' + JSON.stringify(e.data) + ' nilai=' + JSON.stringify(e.target && e.target.value) + ' @' + desc(e.target),
+        compositionstart: (e) => 'compositionstart @' + desc(e.target),
+        compositionupdate: (e) => 'compositionupdate data=' + JSON.stringify(e.data),
+        compositionend: (e) => 'compositionend data=' + JSON.stringify(e.data),
+        focusin: (e) => 'focusin -> ' + desc(e.target),
+        focusout: (e) => 'focusout <- ' + desc(e.target),
+      };
+      Object.keys(fmt).forEach((type) => {
+        document.addEventListener(type, (e) => { try { log(fmt[type](e)); } catch (err) {} }, true);
+      });
+
+      log('MODE DEBUG aktif. Fokus: ' + desc(document.activeElement) +
+        ' | inputmode receiver: ' + ((document.getElementById('barcode-scanner-receiver') || {}).getAttribute ? document.getElementById('barcode-scanner-receiver').getAttribute('inputmode') : '-'));
+    } catch (err) {}
+  })();
 
   // Export to global
   window.KDMPEvents = {
