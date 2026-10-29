@@ -814,6 +814,7 @@
       const lines = [];
       let box = null;
       let pre = null;
+      let modeBtn = null;
 
       function desc(el) {
         if (!el) return '-';
@@ -840,7 +841,7 @@
           bar.appendChild(b);
           return b;
         }
-        const modeBtn = mkBtn('inputmode: none', () => {
+        modeBtn = mkBtn('inputmode: ?', () => {
           const r = document.getElementById('barcode-scanner-receiver');
           if (!r) return;
           const now = r.getAttribute('inputmode') === 'none' ? 'text' : 'none';
@@ -866,6 +867,8 @@
         if (!pre) return;
         pre.textContent = lines.join('\n');
         pre.scrollTop = pre.scrollHeight;
+        const rcv = document.getElementById('barcode-scanner-receiver');
+        if (modeBtn && rcv) modeBtn.textContent = 'inputmode: ' + rcv.getAttribute('inputmode');
       }
 
       function log(msg) {
